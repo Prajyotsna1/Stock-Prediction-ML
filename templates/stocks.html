@@ -23,9 +23,9 @@
     }
     .stock-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); transform: translateY(-4px); }
     
-    .sc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .sc-symbol { font-size: 20px; font-weight: 800; color: var(--text-primary); }
-    .sc-sector { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 6px; background: rgba(0, 198, 255, 0.08); color: var(--cyan); border: 1px solid rgba(0, 198, 255, 0.15); }
+    .sc-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .sc-symbol { font-size: 20px; font-weight: 800; color: var(--text-primary); flex-shrink: 0; }
+    .sc-sector { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 4px 8px; border-radius: 6px; background: rgba(0, 198, 255, 0.08); color: var(--cyan); border: 1px solid rgba(0, 198, 255, 0.15); text-align: right; max-width: 120px; line-height: 1.4; }
     
     .sc-name { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; flex-grow: 1; }
     

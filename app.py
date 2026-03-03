@@ -1,8 +1,13 @@
 import requests
 import pandas as pd
 import ssl
+import yfinance as yf
+# from google import genai
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+# Configure your API Key (Get a free one from Google AI Studio)
+# client = genai.Client(api_key="AIzaSyCg0s8Pmz302No5D78m2D9jQyr74n-WW1M")
+
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 import pandas as pd
@@ -29,7 +34,8 @@ login_manager.login_message_category = "error"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    # Modern SQLAlchemy 2.0 way:
+    return db.session.get(User, int(user_id))
 
 # Create database tables automatically if they don't exist
 with app.app_context():
@@ -90,7 +96,45 @@ def get_dynamic_stocks():
         return STOCK_CACHE
 
 # ── ROUTES ──
-
+@app.route('/ask_ai', methods=['POST'])
+def ask_ai():
+    query = request.json.get('message', '').lower()
+    
+    # ── NAVIGATION ──
+    if 'how to use' in query:
+        reply = "Search for a ticker (like RELIANCE.NS) in the Predictor and click 'Forecast' to see tomorrow's estimated prices."
+    elif 'save' in query:
+        reply = "After a prediction, click 'Save to Watchlist'. You can then track live prices and returns on your Dashboard."
+    
+    # ── FINANCIAL TERMS ──
+    elif 'close' in query:
+        reply = "The 'Close' is the final trading price of the day. It's the primary value our Ridge model aims to predict."
+    elif 'high' in query or 'low' in query:
+        reply = "The 'High' is the peak price and the 'Low' is the bottom price of the day. Our model estimates this range for you."
+    elif 'volume' in query:
+        reply = "Trading Volume is the total number of shares traded. High volume indicates strong market interest in a price move."
+    
+    # ── TECHNICAL INDICATORS ──
+    elif '10-day' in query:
+        reply = "The 10-day SMA is the average price over 10 days. It helps the model detect short-term trends and momentum."
+    elif '50-day' in query:
+        reply = "The 50-day SMA is the average price over 50 days, used by the model to identify the long-term trend direction."
+    elif 'daily return' in query:
+        reply = "Daily Return is the % change from the previous day. It measures daily volatility to help the model adjust forecasts."
+    
+    # ── MACHINE LEARNING ──
+    elif 'ridge' in query:
+        reply = "Ridge Regression uses L2 Regularization to penalize large coefficients, preventing overfitting and handling market noise."
+    elif 'mae' in query:
+        reply = "MAE (Mean Absolute Error) is the average dollar amount the prediction is off by. In this project, lower MAE means higher accuracy."
+    elif 'mse' in query:
+        reply = "MSE (Mean Squared Error) squares the errors to penalize major 'misses' more heavily, ensuring the model stays reliable."
+    
+    else:
+        reply = "I'm the PredictX guide! Select an option to learn more about my features."
+        
+    return jsonify({"reply": reply})
+          
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -152,6 +196,12 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+@app.route('/profile')
+@login_required
+def profile():
+    # We already have access to 'current_user' thanks to Flask-Login
+    return render_template('profile.html', user=current_user)
+
 @app.route('/stocks')
 def stocks():
     popular_stocks = get_dynamic_stocks()
@@ -175,10 +225,18 @@ def save_stock():
     if ticker:
         existing_stock = Watchlist.query.filter_by(user_id=current_user.id, ticker=ticker).first()
         if not existing_stock:
-            new_item = Watchlist(ticker=ticker, user_id=current_user.id)
+            # 1. Quickly fetch the price AT THIS EXACT MOMENT
+            try:
+                stock_data = yf.Ticker(ticker).history(period="1d")
+                current_price = round(stock_data['Close'].iloc[-1], 2) if not stock_data.empty else 0.0
+            except:
+                current_price = 0.0
+
+            # 2. Save it to the database with the price attached
+            new_item = Watchlist(ticker=ticker, user_id=current_user.id, saved_price=current_price)
             db.session.add(new_item)
             db.session.commit()
-            flash(f"Successfully added {ticker} to your watchlist!", "success")
+            flash(f"Successfully saved {ticker} at ${current_price}!", "success")
         else:
             flash(f"{ticker} is already in your watchlist.", "info")
             
@@ -187,7 +245,9 @@ def save_stock():
 @app.route('/delete_stock/<int:item_id>', methods=['POST'])
 @login_required
 def delete_stock(item_id):
+    # Find the specific stock in the database
     item = Watchlist.query.filter_by(id=item_id, user_id=current_user.id).first()
+    
     if item:
         ticker = item.ticker
         db.session.delete(item)
@@ -199,10 +259,36 @@ def delete_stock(item_id):
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Pull all watchlist items belonging to the currently logged-in user
     user_watchlist = Watchlist.query.filter_by(user_id=current_user.id).all()
-    # Pass that data to the template
-    return render_template('dashboard.html', watchlist=user_watchlist)
+    enriched_watchlist = []
+    
+    for item in user_watchlist:
+        # 1. Get the LIVE price right now
+        try:
+            stock_data = yf.Ticker(item.ticker).history(period="1d")
+            live_price = round(stock_data['Close'].iloc[-1], 2) if not stock_data.empty else 0.0
+        except:
+            live_price = 0.0
+            
+        # 2. Calculate the Total Return (%) since the day it was saved
+        if item.saved_price and item.saved_price > 0:
+            total_return = round(((live_price - item.saved_price) / item.saved_price) * 100, 2)
+        else:
+            total_return = 0.0
+            
+        # 3. Format the date beautifully (e.g., "Mar 03, 2026")
+        formatted_date = item.date_saved.strftime("%b %d, %Y") if item.date_saved else "N/A"
+            
+        enriched_watchlist.append({
+            'id': item.id,
+            'ticker': item.ticker,
+            'saved_price': item.saved_price,
+            'live_price': live_price,
+            'date_saved': formatted_date,
+            'total_return': total_return
+        })
+        
+    return render_template('dashboard.html', watchlist=enriched_watchlist)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

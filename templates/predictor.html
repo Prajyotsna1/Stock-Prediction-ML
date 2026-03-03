@@ -56,11 +56,15 @@
     </div>
 
     <div class="search-container">
-        <form method="POST" action="{{ url_for('predictor') }}">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" name="ticker" class="search-input" placeholder="Search for a ticker symbol..." required autocomplete="off">
-            <button type="submit" class="btn btn-primary search-btn">Forecast</button>
-        </form>
+        <form id="forecast-form" method="POST" action="{{ url_for('predictor') }}" style="width: 100%; position: relative;">
+    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+    <input type="text" name="ticker" class="search-input" placeholder="Search for a ticker symbol..." required autocomplete="off">
+    
+    <button type="submit" id="forecast-btn" class="btn btn-primary search-btn">
+        <span id="btn-text">Forecast</span>
+        <i id="btn-spinner" class="fa-solid fa-circle-notch fa-spin" style="display: none; font-size: 16px;"></i>
+    </button>
+</form>
     </div>
 
     {% if prediction_data %}
@@ -100,7 +104,7 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; max-width: 1000px; margin: 24px auto 0; animation: fadeInUp 0.8s ease;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 24px; max-width: 1200px; margin: 24px auto 0; animation: fadeInUp 0.8s ease;">
                 
                 <div class="px-feat-card" style="padding: 24px; text-align: left;">
                     <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
@@ -125,6 +129,28 @@
                         <span style="color: var(--text-secondary); font-size: 14px;">Trading Volume</span>
                         <strong style="color: var(--text-primary); font-family: var(--font-mono);">{{ prediction_data.volume }}</strong>
                     </div>
+                </div>
+
+                <div class="px-feat-card" style="padding: 24px; text-align: left;">
+                    <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                        <i class="fa-solid fa-bullseye text-gradient" style="margin-right: 8px;"></i> Model Reliability
+                    </h4>
+
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="color: var(--text-secondary); font-size: 14px;">Avg. Error (MAE)</span>
+                        <strong style="color: var(--text-primary); font-family: var(--font-mono);">${{ prediction_data.mae_score }}</strong>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px dashed var(--border);">
+                        <span style="color: var(--text-secondary); font-size: 14px;">Accuracy Score</span>
+                        <span style="padding: 4px 10px; border-radius: 6px; background: var(--cyan-glow); color: var(--cyan); font-weight: 700; font-size: 12px;">
+                            {{ prediction_data.accuracy_pct }}%
+                        </span>
+                    </div>
+
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 16px; line-height: 1.5;">
+                        Based on backtesting the last year of trading data for {{ prediction_data.ticker }}.
+                    </p>
                 </div>
 
                 <div class="px-feat-card" style="padding: 16px; min-height: 250px;">
@@ -169,4 +195,21 @@
     {% endif %}
 
 </div>
+
+<script>
+    document.getElementById('forecast-form').addEventListener('submit', function() {
+        const btn = document.getElementById('forecast-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+
+        // 1. Disable the button to prevent multiple API calls
+        btn.disabled = true;
+        btn.style.opacity = '0.8';
+        btn.style.cursor = 'wait';
+
+        // 2. Hide the "Forecast" text and show the spinning circle
+        btnText.style.display = 'none';
+        btnSpinner.style.display = 'inline-block';
+    });
+</script>
 {% endblock %}

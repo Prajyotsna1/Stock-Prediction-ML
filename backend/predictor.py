@@ -5,6 +5,7 @@ import os
 import plotly.graph_objects as go
 import plotly.io as pio
 from datetime import timedelta
+from sklearn.metrics import mean_absolute_error
 
 # Define absolute paths so Flask never gets confused about where the models are
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +16,10 @@ def fetch_and_prepare_data(ticker_symbol):
     Fetches the latest market data and engineers the exact features your model expects.
     """
     ticker = yf.Ticker(ticker_symbol)
-    df = ticker.history(period="3mo")
+    
+    # FIX: Increased to 1y so that after dropping 50 days for the SMA_50, 
+    # we still have plenty of historical data left to make a beautiful chart!
+    df = ticker.history(period="1y") 
     
     if df.empty:
         raise ValueError(f"No data found for ticker {ticker_symbol}")
@@ -39,7 +43,7 @@ def fetch_and_prepare_data(ticker_symbol):
 
 def predict_tomorrow(ticker_symbol):
     """
-    Loads the trained Ridge models, predicts next day prices, and generates a Plotly chart.
+    Loads the trained Ridge models, predicts next day prices, and generates an advanced Plotly chart.
     """
     try:
         features, raw_df = fetch_and_prepare_data(ticker_symbol)
@@ -57,36 +61,83 @@ def predict_tomorrow(ticker_symbol):
         
         latest_close = raw_df.iloc[-1]['Close']
         
-        # ── PLOTLY CHART GENERATION ──
-        chart_df = raw_df.tail(30).copy()
+        # ── ADVANCED PLOTLY CHART GENERATION ──
+        chart_df = raw_df.tail(60).copy() # Show the last 2 months on the chart
         fig = go.Figure()
 
-        # Historical Line
-        fig.add_trace(go.Scatter(
-            x=chart_df.index, y=chart_df['Close'],
-            mode='lines+markers', name='Historical Close',
-            line=dict(color='#00C6FF', width=2), marker=dict(size=5, color='#00C6FF')
+        # 1. Professional Candlestick Chart
+        fig.add_trace(go.Candlestick(
+            x=chart_df.index,
+            open=chart_df['Open'],
+            high=chart_df['High'],
+            low=chart_df['Low'],
+            close=chart_df['Close'],
+            name='Daily Price',
+            increasing_line_color='#10B981', # Emerald
+            decreasing_line_color='#FF4455'  # Red
         ))
 
-        # Prediction Line (Connecting today to tomorrow)
+        # 2. Add 10-Day SMA Line
+        fig.add_trace(go.Scatter(
+            x=chart_df.index, y=chart_df['SMA_10'],
+            mode='lines', name='10-Day SMA',
+            line=dict(color='#00C6FF', width=1.5) # Cyan
+        ))
+
+        # 3. Add 50-Day SMA Line
+        fig.add_trace(go.Scatter(
+            x=chart_df.index, y=chart_df['SMA_50'],
+            mode='lines', name='50-Day SMA',
+            line=dict(color='#8A9BBE', width=1.5, dash='dot') # Muted text color
+        ))
+
+        # 4. Prediction Markers for Tomorrow
         next_day = chart_df.index[-1] + timedelta(days=1)
+        
+        # Predicted Close (Star)
         fig.add_trace(go.Scatter(
-            x=[chart_df.index[-1], next_day], y=[latest_close, pred_close],
-            mode='lines+markers', name='Predicted Close',
-            line=dict(color='#00FF88', width=2, dash='dash'), marker=dict(size=8, color='#00FF88', symbol='star')
+            x=[next_day], y=[pred_close],
+            mode='markers', name='Predicted Close',
+            marker=dict(size=14, color='#10B981', symbol='star', line=dict(color='white', width=1))
+        ))
+        
+        # Prediction Range (High to Low Line)
+        fig.add_trace(go.Scatter(
+            x=[next_day, next_day], y=[pred_low, pred_high],
+            mode='lines', name='Predicted Range',
+            line=dict(color='rgba(16, 185, 129, 0.5)', width=4)
         ))
 
-        # UI Styling
+        # 5. UI Styling & Interactivity
         fig.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color='#8A9BBE', family='Sora, sans-serif'),
-            margin=dict(l=0, r=0, t=30, b=0),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            xaxis=dict(showgrid=False, zeroline=False),
-            yaxis=dict(showgrid=True, gridcolor='#1E2D4A', zeroline=False)
+            hovermode='x unified', # Creates the professional crosshair and popup box
+            margin=dict(l=0, r=0, t=10, b=0),
+            xaxis=dict(
+                showgrid=False, 
+                zeroline=False,
+                rangeslider=dict(visible=False), # Hides the bulky default scrollbar
+                type='date'
+            ),
+            yaxis=dict(
+                showgrid=True, 
+                gridcolor='rgba(138, 155, 190, 0.1)', 
+                zeroline=False,
+                tickprefix='$'
+            ),
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
 
         chart_json = pio.to_json(fig)
+
+        # Calculate historical accuracy (MAE) using all available data
+        historical_features = scaler.transform(raw_df[['SMA_10', 'SMA_50', 'Daily_Return']])
+        historical_preds = model_close.predict(historical_features)
+        mae = mean_absolute_error(raw_df['Close'], historical_preds)
+        accuracy_pct = round(100 - (mae / latest_close * 100), 2)
         
         return {
             "status": "success",
@@ -99,7 +150,9 @@ def predict_tomorrow(ticker_symbol):
             "sma_50": round(raw_df.iloc[-1]['SMA_50'], 2),
             "daily_return": round(raw_df.iloc[-1]['Daily_Return'] * 100, 2),
             "volume": f"{int(raw_df.iloc[-1]['Volume']):,}",
-            "chart_json": chart_json
+            "chart_json": chart_json,
+            "mae_score": round(mae, 2),
+            "accuracy_pct": accuracy_pct
         }
         
     except Exception as e:

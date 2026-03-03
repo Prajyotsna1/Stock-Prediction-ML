@@ -11,6 +11,7 @@
   --font-mono: 'JetBrains Mono', monospace;
   --cyan: #00C6FF;
   --cyan-glow: rgba(0, 198, 255, 0.2);
+  --scrollbar-thumb: #1E2D4A;
   --gradient: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --radius-sm: 8px;
@@ -49,6 +50,7 @@
   /* Override accent for Light Mode to Emerald */
   --cyan: #10B981; 
   --cyan-glow: rgba(16, 185, 129, 0.15);
+  --scrollbar-thumb: var(--cyan);
   --gradient: linear-gradient(135deg, #10B981 0%, #34D399 100%);
 }
 
@@ -63,6 +65,7 @@ body {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  padding-top: 68px;
 }
 
 html {
@@ -70,14 +73,32 @@ html {
   font-size: 16px;
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+/* ── Advanced Custom Scrollbar ── */
+::-webkit-scrollbar { 
+    width: 12px; /* Slightly wider for better usability */
+    height: 12px;
+}
+
+::-webkit-scrollbar-track { 
+    background: var(--bg-primary); 
+}
+
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border-radius: 3px;
+    /* The border matches the background, creating a floating pill illusion */
+    border: 3px solid var(--bg-primary); 
+    border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--cyan-dark); }
+
+::-webkit-scrollbar-thumb:hover { 
+    background: var(--cyan); /* Turns Emerald in light mode, Cyan in dark mode! */
+}
+
+/* Firefox Support */
+* {
+    scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--bg-primary);
+}
 
 a { color: var(--cyan); text-decoration: none; transition: var(--transition); }
 a:hover { color: var(--cyan-dark); }
@@ -266,10 +287,12 @@ a:hover { color: var(--cyan-dark); }
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 0 60px rgba(0,198,255,0.08);
-  display: flex;
+  display: block;
+  text-align: center;
+  padding: 44px 36px;
 }
 .px-cta-box h2 { font-size: clamp(24px, 4vw, 36px); font-weight: 800; margin-bottom: 14px; letter-spacing: -0.5px; color: var(--text-primary); }
-.px-cta-box p { font-size: 16px; color: var(--text-secondary); margin-bottom: 32px; line-height: 1.7; }
+.px-cta-box p { font-size: 16px; color: var(--text-secondary); margin: 0 auto 32px; line-height: 1.7; max-width: 760px; }
 .px-cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .px-disclaimer { padding: 16px 24px; background: rgba(255,180,0,0.06); border: 1px solid rgba(255,180,0,0.15); border-radius: 10px; color: #B8860B; font-size: 12.5px; }
 [data-theme="light"] .px-disclaimer { background: rgba(255,180,0,0.08); color: #8B6914; }
@@ -314,3 +337,123 @@ a:hover { color: var(--cyan-dark); }
   .px-footer-grid { grid-template-columns: 1fr; }
   .px-footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
 }
+
+/* ============================================
+   Global Page Load Transition
+   ============================================ */
+.page-transition {
+    /* 1. Start completely transparent and slightly pushed down */
+    opacity: 0;
+    transform: translateY(15px);
+    
+    /* 2. Animate to full visibility using a premium ease-out curve */
+    animation: smoothPageLoad 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes smoothPageLoad {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   Scroll Reveal Animation
+   ============================================ */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: opacity, transform; /* Optimizes browser performance */
+}
+
+/* This class gets added by JavaScript when you scroll down to the element */
+.reveal-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ============================================
+   Global Page Loader
+   ============================================ */
+.px-loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.px-loader-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.px-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  box-shadow: var(--shadow-glow);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Chatbot Style
+   ============================================ */
+
+/* Modern Chip Styling */
+.chat-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Specific Category Glows */
+.nav-chip:hover { 
+    border-color: #ffffff; 
+    background: rgba(255, 255, 255, 0.1); 
+}
+
+.market-chip { border-color: rgba(0, 243, 255, 0.3); color: var(--cyan); }
+.market-chip:hover { background: rgba(0, 243, 255, 0.15); border-color: var(--cyan); }
+
+.tech-chip { border-color: rgba(0, 255, 157, 0.3); color: #00ff9d; }
+.tech-chip:hover { background: rgba(0, 255, 157, 0.15); border-color: #00ff9d; }
+
+/* Exit Button Styling */
+.chat-exit-btn {
+    width: 100%;
+    margin-top: 4px;
+    background: transparent;
+    border: 1px dashed rgba(255, 68, 85, 0.4);
+    color: #ff4455;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.chat-exit-btn:hover { background: rgba(255, 68, 85, 0.1); border-style: solid; }
