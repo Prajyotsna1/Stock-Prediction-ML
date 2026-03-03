@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PredictX — Stock Price Forecasting{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <nav class="px-navbar">
+        <a href="{{ url_for('home') }}" class="px-logo">
+            <div class="px-logo-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            <span class="px-logo-text">PredictX</span>
+        </a>
+
+        <ul class="px-nav-links">
+            <li>
+                <a href="{{ url_for('home') }}" class="px-nav-link {% if request.endpoint == 'home' %}active{% endif %}">
+                    <i class="fa-solid fa-house"></i> Home
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('stocks') }}" class="px-nav-link {% if request.endpoint == 'stocks' %}active{% endif %}">
+                    <i class="fa-solid fa-list"></i> Stocks
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('predictor') }}" class="px-nav-link {% if request.endpoint == 'predictor' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line"></i> Predictor
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('dashboard') }}" class="px-nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-bar"></i> Dashboard
+                </a>
+            </li>
+        </ul>
+        
+        <div class="px-nav-right">
+    <button class="px-theme-btn" id="theme-toggle-btn" title="Toggle Theme"><i class="fa-solid fa-sun"></i></button>
+    
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard') }}" class="px-nav-link" style="color: var(--cyan); border: 1px solid rgba(0, 198, 255, 0.3); padding: 8px 16px; border-radius: 8px; margin-right: 10px;">
+            <i class="fa-solid fa-user-circle"></i> Profile
+        </a>
+        <a href="{{ url_for('logout') }}" class="px-btn-register" 
+   style="background: rgba(255, 68, 85, 0.1); border-color: #FF4455; color: #FF4455; box-shadow: none; filter: none;">
+    <i class="fa-solid fa-right-from-bracket"></i> Logout
+</a>
+    {% else %}
+        <a href="{{ url_for('login') }}" class="px-btn-login"><i class="fa-solid fa-right-to-bracket"></i> Login</a>
+        <a href="{{ url_for('register') }}" class="px-btn-register"><i class="fa-solid fa-user-plus"></i> Sign Up</a>
+    {% endif %}
+</div>
+
+        
+    </nav>
+
+
+
+    <main class="page-wrapper" style="margin-top: 68px;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="px-footer">
+        <div class="px-footer-grid">
+            <div class="px-footer-brand">
+                <div class="logo-text"><i class="fa-solid fa-arrow-trend-up"></i> PredictX</div>
+                <p>An intelligent, web-based financial forecasting system powered by Ridge Regression. Predict tomorrow's market movements with confidence.</p>
+            </div>
+            
+            <div class="px-footer-col">
+                <h4>Navigation</h4>
+                <ul>
+                    <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('stocks') }}">Stock Directory</a></li>
+                    <li><a href="{{ url_for('predictor') }}">Predictor</a></li>
+                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                </ul>
+            </div>
+            
+            <div class="px-footer-col">
+                <h4>Info</h4>
+                <ul>
+                    <li>About Us</li>
+                    <li>Contact</li>
+                    <li>Disclaimer</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="px-footer-bottom">
+            <p>© 2026 <span>PredictX</span>.</p>
+            <div class="px-footer-badges">
+                <span class="px-badge">ML Powered</span>
+            </div>
+        </div>
+    </footer>
+    <script>
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    const htmlEl = document.documentElement;
+
+    // Use 'theme' consistently everywhere
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    htmlEl.setAttribute('data-theme', currentTheme);
+    updateIcon(currentTheme);
+
+    themeBtn.addEventListener('click', () => {
+        const targetTheme = htmlEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        htmlEl.setAttribute('data-theme', targetTheme);
+        localStorage.setItem('theme', targetTheme); 
+        updateIcon(targetTheme);
+    });
+
+    function updateIcon(theme) {
+        const icon = themeBtn.querySelector('i');
+        if (theme === 'light') {
+            icon.classList.replace('fa-sun', 'fa-moon');
+            themeBtn.style.color = 'var(--text-primary)';
+        } else {
+            icon.classList.replace('fa-moon', 'fa-sun');
+            themeBtn.style.color = 'var(--cyan)';
+        }
+    }
+</script>
+</body>
+</html>

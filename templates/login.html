@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — PredictX{% endblock %}
+
+{% block content %}
+<style>
+    /* Premium Input Field Styling */
+    .px-input-group { 
+        position: relative; 
+        width: 75%; 
+        display: block; 
+    }
+    
+    /* The Input Field */
+    .px-input-group input { 
+        width: 65%; 
+        padding-left: 44px; 
+        padding-right: 44px; 
+        height: 52px; /* Slightly taller for the rounded look */
+        background: var(--bg-input);
+        color: var(--text-primary);
+        outline: none;
+        
+        /* The Rounded Neon Blue Look */
+        border-radius: 16px; 
+        border: 1.5px solid rgba(0, 198, 255, 0.6); 
+        box-shadow: 0 0 10px rgba(0, 198, 255, 0.15); 
+        transition: all 0.3s ease;
+    }
+    
+    /* The Glow Effect on Click */
+    .px-input-group input:focus { 
+        border-color: var(--cyan); 
+        box-shadow: 0 0 18px rgba(0, 198, 255, 0.5); 
+    }
+    
+    /* Left Icon */
+    .px-input-group .field-icon { 
+        position: absolute; 
+        left: 16px; 
+        top: 50%; 
+        transform: translateY(-50%); 
+        color: rgba(0, 198, 255, 0.7); /* Matching neon blue */
+        font-size: 15px; 
+        transition: var(--transition); 
+        pointer-events: none; 
+    }
+    
+    /* Highlight icon when user types */
+    .px-input-group input:focus + .field-icon { 
+        color: #fff; 
+        text-shadow: 0 0 8px rgba(0, 198, 255, 0.8);
+    }
+    
+    /* Right Eye Icon */
+    .px-input-group .toggle-password { 
+        position: absolute; 
+        right: 16px; 
+        top: 50%; 
+        transform: translateY(-50%); 
+        cursor: pointer; 
+        color: rgba(0, 198, 255, 0.7); 
+        font-size: 15px; 
+        transition: var(--transition); 
+        z-index: 2; 
+    }
+    .px-input-group .toggle-password:hover { 
+        color: #fff; 
+        text-shadow: 0 0 8px rgba(0, 198, 255, 0.8);
+    }
+    
+    /* Password Validation Checklist (Leave this in for register.html only) */
+    .pwd-rules { font-size: 12px; color: var(--text-muted); margin-top: 10px; list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .pwd-rules li { display: flex; align-items: center; gap: 6px; transition: color 0.3s ease; }
+    .pwd-rules li i { font-size: 10px; }
+    .pwd-rules li.valid { color: #00CC6A; text-shadow: 0 0 5px rgba(0, 204, 106, 0.3); }
+    .pwd-rules li.invalid { color: var(--text-muted); }
+</style>
+
+<div class="px-section" style="display: flex; align-items: center; justify-content: center; min-height: 95vh; padding: 80px 24px;">
+    
+    <div class="px-cta-box" style="width: 100%; max-width: 900px; padding: 0; display: flex; flex-wrap: wrap; overflow: hidden; text-align: left;">
+        
+        <div class="px-auth-left" style="background: rgba(0, 198, 255, 0.03); border-right: 1px solid var(--border);">
+            <div class="px-logo" style="margin-bottom: 24px;">
+                <div class="px-logo-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                <span class="px-logo-text">PredictX</span>
+            </div>
+            <h2 style="font-size: 32px; margin-bottom: 12px; color: var(--text-primary); font-weight: 800; letter-spacing: -0.5px;">Welcome<br>Back to<br><span class="text-gradient">PredictX</span></h2>
+            <p style="font-size: 15px; margin-bottom: 40px; color: var(--text-secondary); line-height: 1.6;">Sign in to access your personalized stock predictions and saved forecasts.</p>
+            
+            <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-secondary); line-height: 2.4; font-size: 14px;">
+                <li><i class="fa-solid fa-bolt text-gradient" style="margin-right: 12px; font-size: 16px;"></i> Live stock predictions</li>
+                <li><i class="fa-solid fa-brain text-gradient" style="margin-right: 12px; font-size: 16px;"></i> Ridge Regression engine</li>
+                <li><i class="fa-solid fa-bookmark text-gradient" style="margin-right: 12px; font-size: 16px;"></i> Save your forecasts</li>
+                <li><i class="fa-solid fa-star text-gradient" style="margin-right: 12px; font-size: 16px;"></i> Personal watchlist</li>
+            </ul>
+        </div>
+
+        <div class="px-auth-right">
+            <h3 style="font-size: 24px; margin-bottom: 8px; color: var(--text-primary); font-weight: 700;">Sign In</h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 36px;">Enter your credentials to continue</p>
+            
+            <form method="POST" action="{{ url_for('login') }}">
+                <div style="margin-bottom: 24px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block;">Username</label>
+                    <div class="px-input-group">
+                        <input type="text" name="username" class="input" placeholder="Enter your username" required>
+                        <i class="fa-solid fa-user field-icon"></i>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block;">Password</label>
+                    <div class="px-input-group">
+                        <input type="password" name="password" id="login-password" class="input" placeholder="Enter your password" required>
+                        <i class="fa-solid fa-lock field-icon"></i>
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePassword('login-password', this)"></i>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 36px;">
+                    <input type="checkbox" id="remember" style="accent-color: var(--cyan); width: 16px; height: 16px; cursor: pointer;">
+                    <label for="remember" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Remember me</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 14px 24px; font-size: 15px;">Sign In <i class="fa-solid fa-arrow-right"></i></button>
+            </form>
+            
+            <p style="margin-top: 32px; text-align: center; font-size: 14px; color: var(--text-secondary);">
+                Don't have an account? <a href="{{ url_for('register') }}" style="font-weight: 600;">Sign Up Free</a>
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Toggle Eye Icon Logic
+    function togglePassword(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+            input.type = "text";
+            iconElement.classList.remove("fa-eye");
+            iconElement.classList.add("fa-eye-slash");
+        } else {
+            input.type = "password";
+            iconElement.classList.remove("fa-eye-slash");
+            iconElement.classList.add("fa-eye");
+        }
+    }
+</script>
+{% endblock %}

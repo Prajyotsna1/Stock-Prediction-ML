@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Predictor — PredictX{% endblock %}
+
+{% block content %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<style>
+    /* Search Bar Styling */
+    .search-container { max-width: 700px; margin: 0 auto 60px; position: relative; }
+    .search-input {
+        width: 100%; padding: 18px 24px 18px 56px; font-size: 16px;
+        background: var(--bg-card); color: var(--text-primary);
+        border: 1.5px solid rgba(0, 198, 255, 0.4); border-radius: 100px;
+        box-shadow: 0 0 20px rgba(0, 198, 255, 0.08); transition: all 0.3s ease; outline: none;
+    }
+    .search-input:focus { border-color: var(--cyan); box-shadow: 0 0 25px rgba(0, 198, 255, 0.3); }
+    .search-icon { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); color: var(--cyan); font-size: 18px; pointer-events: none; }
+    .search-btn {
+        position: absolute; right: 8px; top: 8px; bottom: 8px;
+        border-radius: 100px; padding: 0 24px;
+    }
+
+    /* Results Grid */
+    .result-header { text-align: center; margin-bottom: 40px; animation: fadeInUp 0.5s ease; }
+    .result-ticker { font-size: 42px; font-weight: 800; color: var(--text-primary); letter-spacing: -1px; }
+    .result-meta { font-size: 16px; color: var(--text-secondary); margin-top: 8px; }
+    
+    .px-pred-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; animation: fadeInUp 0.7s ease; }
+    .px-pred-card {
+        background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+        padding: 32px 24px; text-align: center; position: relative; overflow: hidden; transition: var(--transition);
+    }
+    .px-pred-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); transform: translateY(-5px); }
+    .px-pred-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; opacity: 0.8; }
+    
+    .card-high::before { background: linear-gradient(90deg, #00C6FF, #00FF88); }
+    .card-close::before { background: var(--gradient); }
+    .card-low::before { background: linear-gradient(90deg, #FF4455, #FF8855); }
+
+    .pred-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 16px; display: block; }
+    .pred-value { font-family: var(--font-mono); font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: block; }
+    .pred-diff { font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 6px; display: inline-block; }
+    
+    .diff-up { background: rgba(0, 255, 136, 0.1); color: #00FF88; border: 1px solid rgba(0, 255, 136, 0.2); }
+    .diff-down { background: rgba(255, 68, 85, 0.1); color: #FF4455; border: 1px solid rgba(255, 68, 85, 0.2); }
+    
+    .error-box { max-width: 600px; margin: 0 auto; padding: 24px; border-radius: 16px; background: rgba(255, 68, 85, 0.05); border: 1px solid rgba(255, 68, 85, 0.3); color: #FF4455; text-align: center; animation: fadeInUp 0.5s ease; }
+</style>
+
+<div class="px-section" style="min-height: 85vh; padding-top: 60px;">
+    
+    <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 12px;">AI Market <span class="text-gradient">Predictor</span></h1>
+        <p style="color: var(--text-secondary); font-size: 16px;">Enter a stock ticker (e.g., AAPL, TSLA, INFY.NS) to forecast tomorrow's prices.</p>
+    </div>
+
+    <div class="search-container">
+        <form method="POST" action="{{ url_for('predictor') }}">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" name="ticker" class="search-input" placeholder="Search for a ticker symbol..." required autocomplete="off">
+            <button type="submit" class="btn btn-primary search-btn">Forecast</button>
+        </form>
+    </div>
+
+    {% if prediction_data %}
+        {% if prediction_data.status == 'success' %}
+            
+            <div class="result-header">
+                <div class="result-ticker">{{ prediction_data.ticker }}</div>
+                <div class="result-meta">Latest Close: <strong style="color: #fff;">${{ prediction_data.latest_close }}</strong></div>
+            </div>
+
+            <div class="px-pred-grid">
+                <div class="px-pred-card card-high">
+                    <span class="pred-label">Predicted High</span>
+                    <span class="pred-value">${{ prediction_data.predicted_high }}</span>
+                    {% set high_diff = ((prediction_data.predicted_high - prediction_data.latest_close) / prediction_data.latest_close * 100) | round(2) %}
+                    <span class="pred-diff {% if high_diff >= 0 %}diff-up{% else %}diff-down{% endif %}">
+                        {% if high_diff >= 0 %}▲{% else %}▼{% endif %} {{ high_diff }}%
+                    </span>
+                </div>
+
+                <div class="px-pred-card card-close" style="transform: scale(1.05); box-shadow: var(--shadow-glow); border-color: rgba(0,198,255,0.4);">
+                    <span class="pred-label" style="color: var(--cyan);">Predicted Close</span>
+                    <span class="pred-value text-gradient">${{ prediction_data.predicted_close }}</span>
+                    {% set close_diff = ((prediction_data.predicted_close - prediction_data.latest_close) / prediction_data.latest_close * 100) | round(2) %}
+                    <span class="pred-diff {% if close_diff >= 0 %}diff-up{% else %}diff-down{% endif %}">
+                        {% if close_diff >= 0 %}▲{% else %}▼{% endif %} {{ close_diff }}%
+                    </span>
+                </div>
+
+                <div class="px-pred-card card-low">
+                    <span class="pred-label">Predicted Low</span>
+                    <span class="pred-value">${{ prediction_data.predicted_low }}</span>
+                    {% set low_diff = ((prediction_data.predicted_low - prediction_data.latest_close) / prediction_data.latest_close * 100) | round(2) %}
+                    <span class="pred-diff {% if low_diff >= 0 %}diff-up{% else %}diff-down{% endif %}">
+                        {% if low_diff >= 0 %}▲{% else %}▼{% endif %} {{ low_diff }}%
+                    </span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; max-width: 1000px; margin: 24px auto 0; animation: fadeInUp 0.8s ease;">
+                
+                <div class="px-feat-card" style="padding: 24px; text-align: left;">
+                    <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                        <i class="fa-solid fa-microchip text-gradient" style="margin-right: 8px;"></i> Model Input Signals
+                    </h4>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="color: var(--text-secondary); font-size: 14px;">10-Day SMA</span>
+                        <strong style="color: var(--text-primary); font-family: var(--font-mono);">${{ prediction_data.sma_10 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="color: var(--text-secondary); font-size: 14px;">50-Day SMA</span>
+                        <strong style="color: var(--text-primary); font-family: var(--font-mono);">${{ prediction_data.sma_50 }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="color: var(--text-secondary); font-size: 14px;">Daily Return</span>
+                        <strong style="font-family: var(--font-mono);" class="{% if prediction_data.daily_return >= 0 %}diff-up{% else %}diff-down{% endif %}">
+                            {{ prediction_data.daily_return }}%
+                        </strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px dashed var(--border);">
+                        <span style="color: var(--text-secondary); font-size: 14px;">Trading Volume</span>
+                        <strong style="color: var(--text-primary); font-family: var(--font-mono);">{{ prediction_data.volume }}</strong>
+                    </div>
+                </div>
+
+                <div class="px-feat-card" style="padding: 16px; min-height: 250px;">
+                    <div id="plotly-chart"
+                         style="width: 100%; height: 100%;"
+                         data-graph='{{ prediction_data.chart_json | safe }}'></div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 48px; animation: fadeInUp 0.9s ease;">
+    {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('save_stock') }}" style="display: inline-block;">
+            <input type="hidden" name="ticker" value="{{ prediction_data.ticker }}">
+            <button type="submit" class="btn btn-outline" style="cursor: pointer;">
+                <i class="fa-solid fa-bookmark"></i> Save to Watchlist
+            </button>
+        </form>
+    {% else %}
+        <a href="{{ url_for('login') }}" class="btn btn-outline">
+            <i class="fa-solid fa-lock"></i> Login to Save
+        </a>
+    {% endif %}
+</div>
+
+            <script>
+                var graphData = JSON.parse(
+                    document.getElementById('plotly-chart').dataset.graph
+                );
+                Plotly.newPlot('plotly-chart',
+                           graphData.data,
+                           graphData.layout,
+                           {displayModeBar: false, responsive: true});
+            </script>
+
+        {% else %}
+            <div class="error-box">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                <h4 style="margin-bottom: 8px;">Prediction Failed</h4>
+                <p style="font-size: 14px;">{{ prediction_data.message }}. Please ensure you entered a valid Yahoo Finance ticker symbol.</p>
+            </div>
+        {% endif %}
+    {% endif %}
+
+</div>
+{% endblock %}

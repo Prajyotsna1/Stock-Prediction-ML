@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Directory — PredictX{% endblock %}
+
+{% block content %}
+<style>
+    /* Search Bar */
+    .dir-search-wrap { max-width: 600px; margin: 0 auto 48px; position: relative; }
+    .dir-search-input {
+        width: 100%; padding: 16px 24px 16px 56px; font-size: 16px;
+        background: var(--bg-card); color: var(--text-primary);
+        border: 1.5px solid var(--border); border-radius: 100px;
+        transition: all 0.3s ease; outline: none;
+    }
+    .dir-search-input:focus { border-color: var(--cyan); box-shadow: 0 0 20px rgba(0, 198, 255, 0.15); }
+    .dir-search-icon { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 18px; pointer-events: none; }
+    
+    /* Stock Grid */
+    .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; animation: fadeInUp 0.5s ease; }
+    .stock-card {
+        background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+        padding: 24px; transition: var(--transition); display: flex; flex-direction: column;
+    }
+    .stock-card:hover { border-color: var(--border-accent); box-shadow: var(--shadow-glow); transform: translateY(-4px); }
+    
+    .sc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .sc-symbol { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+    .sc-sector { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 6px; background: rgba(0, 198, 255, 0.08); color: var(--cyan); border: 1px solid rgba(0, 198, 255, 0.15); }
+    
+    .sc-name { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; flex-grow: 1; }
+    
+    /* Auto-submit form button inside card */
+    .sc-action { width: 100%; }
+    .sc-btn { width: 100%; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; background: transparent; color: var(--text-primary); border: 1.5px solid var(--border); cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .stock-card:hover .sc-btn { background: var(--cyan-glow); border-color: var(--cyan); color: var(--cyan); }
+</style>
+
+<div class="px-section" style="min-height: 85vh; padding-top: 60px;">
+    
+    <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 12px;">Stock <span class="text-gradient">Directory</span></h1>
+        <p style="color: var(--text-secondary); font-size: 16px;">Browse popular global and domestic tickers ready for forecasting.</p>
+    </div>
+
+    <div class="dir-search-wrap">
+        <i class="fa-solid fa-magnifying-glass dir-search-icon"></i>
+        <input type="text" id="live-search" class="dir-search-input" placeholder="Search by name or ticker symbol..." onkeyup="filterStocks()">
+    </div>
+
+    <div class="stock-grid" id="stock-grid">
+        {% for stock in stocks %}
+        <div class="stock-card" data-search="{{ stock.symbol | lower }} {{ stock.name | lower }}">
+            <div class="sc-header">
+                <span class="sc-symbol">{{ stock.symbol }}</span>
+                <span class="sc-sector">{{ stock.sector }}</span>
+            </div>
+            <div class="sc-name">{{ stock.name }}</div>
+            
+            <form method="POST" action="{{ url_for('predictor') }}" class="sc-action">
+                <input type="hidden" name="ticker" value="{{ stock.symbol }}">
+                <button type="submit" class="sc-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Predict Now</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<script>
+function filterStocks() {
+    let input = document.getElementById('live-search').value.toLowerCase();
+    let cards = document.getElementsByClassName('stock-card');
+
+    for (let i = 0; i < cards.length; i++) {
+        let searchString = cards[i].getAttribute('data-search');
+        if (searchString.includes(input)) {
+            cards[i].style.display = "flex";
+        } else {
+            cards[i].style.display = "none";
+        }
+    }
+}
+</script>
+{% endblock %}
